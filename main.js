@@ -1,6 +1,8 @@
 // main.js
 
 const DEBUG = 0;
+const WEBAPP_POST_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
+const WEBAPP_GET_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
 
 // Tarkistetaan onko kyseessä taustaskripti vai UI
 if (typeof document === 'undefined') {
@@ -215,6 +217,54 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     console.log("Final collected data:", data);
     return data;
   }
+
+  async function checkIfDateColumnExists(dateStr) {
+    try {
+      const response = await fetch(WEBAPP_GET_URL);
+      const headers = await response.json();
+  
+      return headers.some(header => {
+        // Yritetään käsitellä sekä string, number että mahdollinen date
+        const asDate = new Date(header);
+        const formatted = asDate instanceof Date && !isNaN(asDate)
+          ? `${asDate.getDate()}.${asDate.getMonth() + 1}.${asDate.getFullYear()}`
+          : String(header).trim();
+  
+        return formatted === dateStr;
+      });
+  
+    } catch (e) {
+      console.error("Virhe tarkistaessa päivämääräsaraketta:", e);
+      return false;
+    }
+  }
+  
+  
+  function showDatePrompt(dateStr) {
+    return new Promise(resolve => {
+      const prompt = document.getElementById("datePrompt");
+      const text = document.getElementById("datePromptText");
+      text.textContent = `Sarake ${dateStr} on jo olemassa. Mitä haluat tehdä?`;
+  
+      prompt.style.display = "block";
+  
+      document.getElementById("btnReplace").onclick = () => {
+        prompt.style.display = "none";
+        resolve("replace");
+      };
+  
+      document.getElementById("btnKeepBoth").onclick = () => {
+        prompt.style.display = "none";
+        resolve("new");
+      };
+  
+      document.getElementById("btnCancel").onclick = () => {
+        prompt.style.display = "none";
+        resolve("cancel");
+      };
+    });
+  }
+  
   
 
   document.getElementById("toggleAllButton").addEventListener("click", function () {
@@ -256,13 +306,25 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     });
   });
 
-document.getElementById("exportButton").addEventListener("click", async function () {
+  document.getElementById("exportButton").addEventListener("click", async function () {
   const data = collectTableData();
 
+  const today = new Date();
+  const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
+  const exists = await checkIfDateColumnExists(dateStr);
+
+  let mode = "new";
+
+  if (exists) {
+    const userChoice = await showDatePrompt(dateStr);
+    if (userChoice === "cancel") return;
+    mode = userChoice; // "replace" tai "new"
+  }
+
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec", {
+    const res = await fetch(WEBAPP_POST_URL, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ mode, data }),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -276,6 +338,7 @@ document.getElementById("exportButton").addEventListener("click", async function
     alert("⚠️ Siirrossa tapahtui virhe: " + err.message);
   }
 });
+
 
 
   let allExpanded = true;
