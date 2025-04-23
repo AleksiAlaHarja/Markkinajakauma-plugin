@@ -10,6 +10,7 @@
   },
   "permissions": ["tabs", "scripting"],
   "host_permissions": [
+    "https://script.google.com/*",
     "https://www.asuntopehtoori.fi/*",
     "https://kiinteistotahkola.fi/*",
     "https://vuokraus.rettamanagement.fi/*",

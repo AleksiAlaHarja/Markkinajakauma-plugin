@@ -83,17 +83,22 @@ if (typeof document === 'undefined') {
     }
 
     companies = [...uniqueCompanies];
-    cities = [...uniqueCities];
+    cities = [...uniqueCities].slice(1);
     cityIdMap = map;
   }
 
   function addCompanyWithCities(company) {
     const companyRow = document.createElement("tr");
     companyRow.className = "company-row";
+    
     const companyCell = document.createElement("td");
     companyCell.textContent = company;
-    companyCell.colSpan = 2;
+
+    const sumCell = document.createElement("td");
+    sumCell.textContent = "-";
+    
     companyRow.appendChild(companyCell);
+    companyRow.appendChild(sumCell);
     table.appendChild(companyRow);
 
     cities.forEach(function(city) {
@@ -136,6 +141,8 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
       }
 
       let cityRow = companyRows[i].nextElementSibling;
+      let totalForCompany = 0;
+      console.log(`Processing company: ${company}, row index: ${i}`);
       for (const cityName of cities) {
         console.log("main.js: Seuraavaksi " + company + " " +cityName +"...");
         if (cityRow && cityRow.classList.contains("city-row")) {
@@ -147,13 +154,68 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
             const value = await haeFunktio(cityId, cityName);
             console.log("main.js: taulukkoon:  " + value);
             cityRow.cells[1].textContent = value;
+            totalForCompany += parseInt(value) || 0;
+            console.log(`Updated total for ${company}: ${totalForCompany}`);
           }
 
           cityRow = cityRow.nextElementSibling;
         }
       }
+      console.log(`Final total for ${company}: ${totalForCompany}`);
+      if (companyRows[i] && companyRows[i].cells && companyRows[i].cells[1]) {
+        companyRows[i].cells[1].textContent = totalForCompany;
+        console.log(`Updated header row for ${company}`);
+      } else {
+        console.error(`Could not find cells for company row ${i}`);
+      }
     }
   }
+
+  function collectTableData() {
+    console.log("Starting to collect table data...");
+    const data = {};
+    const rows = Array.from(document.querySelectorAll("#marketShareTable tr"));
+    console.log(`Found ${rows.length} rows in total`);
+  
+    let currentCompany = null;
+  
+    rows.forEach((row, index) => {
+      console.log(`Processing row ${index}:`, row);
+      
+      if (row.classList.contains("company-row")) {
+        // Uusi yhtiö alkaa
+        currentCompany = row.cells[0].textContent;
+        const totalText = row.cells[1].textContent || "";
+        console.log(`Found company row: ${currentCompany}, total text: "${totalText}"`);
+        
+        const match = totalText.match(/(\d+)/);
+        const totalValue = match ? parseInt(match[1]) : 0;
+        console.log(`Extracted total value: ${totalValue}`);
+  
+        data[currentCompany] = {};
+        data[currentCompany]["Total"] = totalValue;
+        console.log(`Added company ${currentCompany} to data with total ${totalValue}`);
+      } else if (row.classList.contains("city-row")) {
+        const city = row.cells[0].textContent;
+        const value = parseInt(row.cells[1].textContent) || 0;
+        console.log(`Found city row: ${city} = ${value} for company ${currentCompany}`);
+        
+        if (!currentCompany) {
+          console.warn("Found city row without current company!");
+          return;
+        }
+        
+        data[currentCompany][city] = value;
+        console.log(`Added city ${city} with value ${value} to company ${currentCompany}`);
+      } else {
+        console.log(`Skipping row ${index} - not a company or city row`);
+      }
+    });
+  
+    console.log("Final collected data:", data);
+    return data;
+  }
+  
 
   document.getElementById("toggleAllButton").addEventListener("click", function () {
     const companyRows = document.querySelectorAll("tr.company-row");
@@ -194,9 +256,27 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     });
   });
 
-  document.getElementById("exportButton").addEventListener("click", function () {
-    alert("Siirretään GoogleSheetsiin... (dummy)");
-  });
+document.getElementById("exportButton").addEventListener("click", async function () {
+  const data = collectTableData();
+
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec", {
+      method: "POST",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (res.ok) {
+      alert("✅ Tiedot siirretty Google Sheetsiin!");
+    } else {
+      alert("❌ Siirrossa tapahtui virhe: " + res.status);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("⚠️ Siirrossa tapahtui virhe: " + err.message);
+  }
+});
+
 
   let allExpanded = true;
 
