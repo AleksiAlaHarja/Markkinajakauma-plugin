@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Markkinajakauma",
+  "version": "1.0",
+  "action": {
+    "default_title": "Markkinajakauma"
+  },
+  "background": {
+    "service_worker": "main.js"
+  },
+  "permissions": ["tabs", "scripting"],
+  "host_permissions": [
+    "https://www.asuntopehtoori.fi/*",
+    "https://kiinteistotahkola.fi/*",
+    "https://vuokraus.rettamanagement.fi/*",
+    "https://www.tsvv.fi/vuokra-asunnot/*",
+    "https://op-koti.fi/*",
+    "https://ovv.com/*",
+    "https://oikotie.fi",
+    "https://vuokraovi.com",
+    "https://portaali.vuokraturva.fi/*",
+    "https://www.kiinteistomaailma.fi/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}

@@ -1,0 +1,52 @@
+body {
+  background-color: #f4f4f4;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+.plugin-container {
+  max-width: 600px;
+  margin: 20px auto;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  line-height: 1.2;
+}
+th {
+  background-color: rgb(25,88,162); /* Tumman sininen */
+  color: #fff;
+  text-align: left;
+}
+.company-row {
+  background-color: rgb(27,147,214); /* Vaalean sininen */
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+}
+.city-row {
+  background-color: rgb(222,222,221); /* Harmaa */
+}
+.city-name {
+  padding-left: 10px;
+}
+.button {
+  padding: 6px 10px;
+  background-color: rgb(227,145,35); /* Oranssi */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 5px 2px;
+  font-size: 13px;
+}
+.button:hover {
+  opacity: 0.9;
+}

@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+*.log
+arkisto/
+main_backup.js
+main_backup.js
