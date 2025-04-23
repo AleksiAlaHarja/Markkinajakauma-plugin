@@ -1,6 +1,6 @@
 // main.js
 
-const DEBUG = 0;
+const DEBUG = 1;
 const WEBAPP_POST_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
 const WEBAPP_GET_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
 
@@ -14,46 +14,49 @@ if (typeof document === 'undefined') {
 
 
 ////////////////////////// DEBUG ALKAA
-  if (DEBUG) {
-    const debugBox = document.createElement("div");
-    debugBox.style.border = "2px dashed #ccc";
-    debugBox.style.padding = "10px";
-    debugBox.style.marginBottom = "20px";
-    debugBox.style.background = "#f9f9f9";
+function randomizeTableValues() {
+  const rows = document.querySelectorAll("#marketShareTable tr.city-row");
 
-    debugBox.innerHTML = `
-      <h3>🔧 Debug</h3>
-      <label>cityId: <input id="debug-cityId" type="number" value="1" /></label><br/>
-      <label>cityName: <input id="debug-cityName" type="text" value="Helsinki" /></label><br/>
-      <label>Firma:
-        <select id="debug-firma">
-          <option value="Vuokraturva">Vuokraturva</option>
-          <option value="Kiinteistomaailma">Kiinteistomaailma</option>
-        </select>
-      </label><br/>
-      <button id="debug-submit">Suorita</button><br/>
-      <div id="debug-tulos" style="margin-top:8px;font-weight:bold;"></div>
-    `;
+  rows.forEach(row => {
+    const cell = row.cells[1];
+    const val = parseFloat(cell.textContent);
+    if (!isNaN(val)) {
+      const changePercent = (Math.random() * 0.2 - 0.1); // -10% ... +10%
+      const newVal = Math.round(val * (1 + changePercent));
+      cell.textContent = newVal;
+    }
+  });
 
-    document.body.insertBefore(debugBox, document.body.firstChild);
+  // Päivitä yhtiörivien summat
+  const companyRows = document.querySelectorAll("#marketShareTable tr.company-row");
+  companyRows.forEach(row => {
+    let next = row.nextElementSibling;
+    let total = 0;
+    while (next && next.classList.contains("city-row")) {
+      total += parseInt(next.cells[1].textContent) || 0;
+      next = next.nextElementSibling;
+    }
+    row.cells[1].textContent = total;
+  });
+}
 
-    document.getElementById("debug-submit").addEventListener("click", async () => {
-      const cityId = parseInt(document.getElementById("debug-cityId").value);
-      const cityName = document.getElementById("debug-cityName").value;
-      const firma = document.getElementById("debug-firma").value;
+// PAINIKE
+if (DEBUG) {
+  document.addEventListener("DOMContentLoaded", () => {
+    // Luo nappi
+    const randomBtn = document.createElement("button");
+    randomBtn.id = "debugRandomizeButton";
+    randomBtn.textContent = "🔀";
+    randomBtn.className = "button";
 
-      const functionName = `hae${firma.replace(/\s/g, "")}`;
-      const modulePath = `./firmat/${functionName}.js`;
+    // Etsi toggleAllButton ja lisää vasemmalle
+    const fetchBtn = document.getElementById("fetchDataButton");
+    fetchBtn.parentNode.insertBefore(randomBtn, fetchBtn);
 
-      try {
-        const mod = await import(modulePath);
-        const result = await mod[functionName](cityId, cityName);
-        document.getElementById("debug-tulos").textContent = `Palautettu arvo: ${result}`;
-      } catch (err) {
-        document.getElementById("debug-tulos").textContent = `Virhe: ${err.message}`;
-      }
-    });
-  }
+    // Lisää toiminnallisuus
+    randomBtn.addEventListener("click", randomizeTableValues);
+  });
+}
 ////////////////////////// DEBUG PÄÄTTYY
 
 
@@ -153,9 +156,15 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
           if (!cityId) {
             cityRow.cells[1].textContent = 0;
           } else {
+            // Näytä käyttäjälle että haku on käynnissä
+            cityRow.cells[1].textContent += " ⬅️";
+
             const value = await haeFunktio(cityId, cityName);
             console.log("main.js: taulukkoon:  " + value);
+
+            // Päivitä lopullinen arvo ja poista merkki
             cityRow.cells[1].textContent = value;
+
             totalForCompany += parseInt(value) || 0;
             console.log(`Updated total for ${company}: ${totalForCompany}`);
           }
@@ -265,7 +274,20 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     });
   }
   
-  
+  const fetchBtn = document.getElementById("fetchDataButton");
+  fetchBtn.addEventListener("click", async () => {
+    // Lisää spinner
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    spinner.id = "loadingSpinner";
+    fetchBtn.appendChild(spinner);
+
+    await haeUusimmatTiedot();
+
+    // Poista spinner
+    const s = document.getElementById("loadingSpinner");
+    if (s) fetchBtn.removeChild(s);
+  });
 
   document.getElementById("toggleAllButton").addEventListener("click", function () {
     const companyRows = document.querySelectorAll("tr.company-row");
@@ -278,8 +300,6 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
       }
     });
   });
-
-  document.getElementById("fetchDataButton").addEventListener("click", haeUusimmatTiedot);
 
   document.getElementById("copyButton").addEventListener("click", function () {
     const rows = Array.from(table.rows);
@@ -307,37 +327,37 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
   });
 
   document.getElementById("exportButton").addEventListener("click", async function () {
-  const data = collectTableData();
+    const data = collectTableData();
 
-  const today = new Date();
-  const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
-  const exists = await checkIfDateColumnExists(dateStr);
+    const today = new Date();
+    const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
+    const exists = await checkIfDateColumnExists(dateStr);
 
-  let mode = "new";
+    let mode = "new";
 
-  if (exists) {
-    const userChoice = await showDatePrompt(dateStr);
-    if (userChoice === "cancel") return;
-    mode = userChoice; // "replace" tai "new"
-  }
-
-  try {
-    const res = await fetch(WEBAPP_POST_URL, {
-      method: "POST",
-      body: JSON.stringify({ mode, data }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (res.ok) {
-      alert("✅ Tiedot siirretty Google Sheetsiin!");
-    } else {
-      alert("❌ Siirrossa tapahtui virhe: " + res.status);
+    if (exists) {
+      const userChoice = await showDatePrompt(dateStr);
+      if (userChoice === "cancel") return;
+      mode = userChoice; // "replace" tai "new"
     }
-  } catch (err) {
-    console.error(err);
-    alert("⚠️ Siirrossa tapahtui virhe: " + err.message);
-  }
-});
+
+    try {
+      const res = await fetch(WEBAPP_POST_URL, {
+        method: "POST",
+        body: JSON.stringify({ mode, data }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        alert("✅ Tiedot siirretty Google Sheetsiin!");
+      } else {
+        alert("❌ Siirrossa tapahtui virhe: " + res.status);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Siirrossa tapahtui virhe: " + err.message);
+    }
+  });
 
 
 
