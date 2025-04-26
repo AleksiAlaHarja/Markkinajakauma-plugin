@@ -105,7 +105,7 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
           const cityId = cityIdMap[company]?.[cityName];
 
           if (!cityId) {
-            cityRow.cells[1].textContent = 0;
+            cityRow.cells[1].textContent = "";
           } else {
             // Näytä käyttäjälle että haku on käynnissä
             cityRow.cells[1].textContent += " ⬅️";
@@ -199,7 +199,6 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     }
   }
   
-  
   function showDatePrompt(dateStr) {
     return new Promise(resolve => {
       const prompt = document.getElementById("datePrompt");
@@ -279,6 +278,15 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
 
   document.getElementById("exportButton").addEventListener("click", async function () {
     const data = collectTableData();
+
+    // Muutetaan 0-arvot tyhjiksi merkkijonoiksi
+    for (const company in data) {
+      for (const city in data[company]) {
+        if (data[company][city] === 0) {
+          data[company][city] = "";
+        }
+      }
+    }
 
     const today = new Date();
     const dateStr = `${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`;
