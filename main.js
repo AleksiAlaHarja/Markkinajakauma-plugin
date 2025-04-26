@@ -1,66 +1,17 @@
-// main.js
+import * as debug from "./debug.js";
+import * as config from "./config.js";
 
-const DEBUG = 1;
-const WEBAPP_POST_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
-const WEBAPP_GET_URL = "https://script.google.com/macros/s/AKfycbyLTRaESQhgqic0znZE-DqgbaMQ2y8ImQEdcOZdA6-0dwiQ-8xe-dFVvC4cnKzkINYoAQ/exec";
 
 // Tarkistetaan onko kyseessä taustaskripti vai UI
 if (typeof document === 'undefined') {
+  console.log("Service worker is alive");
+
   chrome.action.onClicked.addListener(() => {
     chrome.tabs.create({ url: "index.html" });
   });
 } else {
   // UI:n alustus
-
-
-////////////////////////// DEBUG ALKAA
-function randomizeTableValues() {
-  const rows = document.querySelectorAll("#marketShareTable tr.city-row");
-
-  rows.forEach(row => {
-    const cell = row.cells[1];
-    const val = parseFloat(cell.textContent);
-    if (!isNaN(val)) {
-      const changePercent = (Math.random() * 0.2 - 0.1); // -10% ... +10%
-      const newVal = Math.round(val * (1 + changePercent));
-      cell.textContent = newVal;
-    }
-  });
-
-  // Päivitä yhtiörivien summat
-  const companyRows = document.querySelectorAll("#marketShareTable tr.company-row");
-  companyRows.forEach(row => {
-    let next = row.nextElementSibling;
-    let total = 0;
-    while (next && next.classList.contains("city-row")) {
-      total += parseInt(next.cells[1].textContent) || 0;
-      next = next.nextElementSibling;
-    }
-    row.cells[1].textContent = total;
-  });
-}
-
-// PAINIKE
-if (DEBUG) {
-  document.addEventListener("DOMContentLoaded", () => {
-    // Luo nappi
-    const randomBtn = document.createElement("button");
-    randomBtn.id = "debugRandomizeButton";
-    randomBtn.textContent = "🔀";
-    randomBtn.className = "button";
-
-    // Etsi toggleAllButton ja lisää vasemmalle
-    const fetchBtn = document.getElementById("fetchDataButton");
-    fetchBtn.parentNode.insertBefore(randomBtn, fetchBtn);
-
-    // Lisää toiminnallisuus
-    randomBtn.addEventListener("click", randomizeTableValues);
-  });
-}
-////////////////////////// DEBUG PÄÄTTYY
-
-
-  const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQcfub_Sd4ByB_JMQS_Jcc2c8BZ6rfDX6lHcmovVDH3Kw1d18EX_60dKow-uQnNzgimBDfhqju_dYsc/pub?gid=1413979988&single=true&output=csv";
+  debug.initRandomizeButton();
 
   let companies = [];
   let cities = [];
@@ -69,7 +20,7 @@ if (DEBUG) {
   const table = document.getElementById("marketShareTable");
 
   async function lataaDataTaulukosta() {
-    const res = await fetch(SHEET_URL);
+    const res = await fetch(config.SHEET_CSV_URL);
     const text = await res.text();
     const rows = text.trim().split("\n").slice(1); // ohita otsikkorivi
 
@@ -229,7 +180,7 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
 
   async function checkIfDateColumnExists(dateStr) {
     try {
-      const response = await fetch(WEBAPP_GET_URL);
+      const response = await fetch(config.WEBAPP_GET_URL);
       const headers = await response.json();
   
       return headers.some(header => {
@@ -342,7 +293,7 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     }
 
     try {
-      const res = await fetch(WEBAPP_POST_URL, {
+      const res = await fetch(config.WEBAPP_POST_URL, {
         method: "POST",
         body: JSON.stringify({ mode, data }),
         headers: { "Content-Type": "application/json" },
@@ -359,6 +310,13 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     }
   });
 
+  document.getElementById("openSheetsButton").addEventListener("click", async function () {
+    window.open(config.SHEET_VIEW_URL, "_blank");
+  });
+
+  document.getElementById("editSheetsButton").addEventListener("click", async function () {
+    window.open(config.SHEET_EDIT_URL, "_blank");
+  });
 
 
   let allExpanded = true;

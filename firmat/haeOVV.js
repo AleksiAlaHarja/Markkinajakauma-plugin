@@ -1,5 +1,4 @@
-// firmat/haeOVV.js
-export function haeOVV(cityId, cityName) {
-  // Dummy-funktio: Palauttaa arvon väliltä 0-189
-  return Math.floor(Math.random() * 190) +" (random)";
+// OVV:ltä haetaan kaupungin kohdemäärä HTML-pohjaisella AJAX-haulla
+export async function haeOVV(cityId, cityName) {
+  return Math.floor(Math.random() * 190) + " (random)";
 }

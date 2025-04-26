@@ -37,9 +37,9 @@ th {
 .city-name {
   padding-left: 10px;
 }
+
 .button {
-  padding: 6px 10px;
-  background-color: rgb(227,145,35); /* Oranssi */
+  padding: 6px 10px; 
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -48,8 +48,15 @@ th {
   font-size: 13px;
 }
 .button:hover {
-  opacity: 0.9;
+  opacity: 0.8;
 }
+.action-button {
+  background-color: rgb(227,145,35); /* Oranssi */
+}
+.sheets-button {
+  background-color: rgb(103,155,59); /* Vihreä */
+}
+
 
 .spinner {
   display: inline-block;

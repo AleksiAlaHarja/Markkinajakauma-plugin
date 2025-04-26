@@ -6,9 +6,13 @@
     "default_title": "Markkinajakauma"
   },
   "background": {
-    "service_worker": "main.js"
+    "service_worker": "main.js",
+    "type": "module"
   },
-  "permissions": ["tabs", "scripting"],
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
   "host_permissions": [
     "https://script.google.com/*",
     "https://www.asuntopehtoori.fi/*",
@@ -16,11 +20,17 @@
     "https://vuokraus.rettamanagement.fi/*",
     "https://www.tsvv.fi/vuokra-asunnot/*",
     "https://op-koti.fi/*",
-    "https://ovv.com/*",
-    "https://oikotie.fi",
-    "https://vuokraovi.com",
-    "https://portaali.vuokraturva.fi/*",
-    "https://www.kiinteistomaailma.fi/*"
+    "https://www.ovv.com/*",
+    "https://www.kiinteistomaailma.fi/*",
+    "https://vuokraovi.com/*",
+    "https://oikotie.fi/*",
+    "https://portaali.vuokraturva.fi/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.ovv.com/*"],
+      "js": ["ovv-content.js"]
+    }
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
