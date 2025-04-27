@@ -12,7 +12,7 @@
   "permissions": [
     "tabs",
     "scripting",
-    "https://www.ovv.com/*"    // 🔵 Tämä lisätty permissions-kohtaan myös!
+    "https://www.ovv.com/*"
   ],
   "host_permissions": [
     "https://script.google.com/*",
@@ -26,12 +26,6 @@
     "https://vuokraovi.com/*",
     "https://oikotie.fi/*",
     "https://portaali.vuokraturva.fi/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": ["https://www.ovv.com/*"],
-      "js": ["ovv-content.js"]
-    }
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"

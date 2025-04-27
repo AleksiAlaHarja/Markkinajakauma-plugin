@@ -1,65 +1,44 @@
 export async function haeOVV(cityId, cityName) {
-  return new Promise((resolve) => {
-    chrome.tabs.create({ url: "https://www.ovv.com/vuokrattavat-kohteet/", active: true }, (tab) => {
-      const tabId = tab.id;
+  try {
+    const staticNonce = "6861048ec6"; // 🔵 Staattinen nonce
 
-      chrome.scripting.executeScript({
-        target: { tabId },
-        func: async (cityName) => {
-          function delay(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-          }
+    const url = "https://www.ovv.com/wp-admin/admin-ajax.php";
 
-          function log(msg, data) {
-            console.log("🔍 OVV DEBUG:", msg, data ?? "");
-          }
+    console.log(`🔵 Lähetetään OVV-pyyntö: officeId ${cityId}, kaupunki ${cityName}`);
 
-          // Etsi oikea checkbox
-          const labels = Array.from(document.querySelectorAll(".ovv-realty-search-label"));
-          const label = labels.find(l => l.textContent.trim().startsWith(cityName));
-          if (!label) {
-            log("❌ Kaupunkia ei löytynyt:", cityName);
-            return 0;
-          }
+    const formData = new URLSearchParams();
+    formData.append("realty_type", "rental");
+    formData.append("ovv_plugin_nonce", staticNonce);
+    formData.append("office[]", cityId);
+    formData.append("postcode", "");
+    formData.append("action", "ovv_plugin_get_realties");
 
-          const checkbox = label.querySelector("input[type=checkbox]");
-          checkbox.scrollIntoView({ behavior: "smooth", block: "center" });
-          await delay(600 + Math.random() * 400);
-          checkbox.click();
-
-          // Odota DOMin päivittymistä
-          await delay(3000);
-
-          const wrapper = document.getElementById("ovv-plugin-realty-list-wrapper");
-          if (!wrapper) {
-            log("⚠️ Wrapperia ei löytynyt");
-            return 0;
-          }
-
-          // Testataan useita valitsimia
-          const selectors = [
-            "li.ovv-realty-plugin-list-item",
-            "div.ovv-realty-plugin-list-item",
-            "li.styled-list-item",
-            "div.styled-list-item"
-          ];
-
-          const counts = selectors.map(sel => {
-            const found = wrapper.querySelectorAll(sel);
-            log(`🧪 ${sel}`, found.length);
-            return found.length;
-          });
-
-          const maxCount = Math.max(...counts);
-          log("📊 Suurin löytynyt määrä:", maxCount);
-          return maxCount;
-        },
-        args: [cityName],
-      }, (results) => {
-        const count = results?.[0]?.result || 0;
-        chrome.tabs.remove(tab.id);
-        resolve(count);
-      });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
     });
-  });
+
+    const data = await response.json();
+
+    // 🔥 Näytetään koko serverin vastaus
+    console.log("📦 Koko serverin vastaus:", JSON.stringify(data, null, 2));
+
+    const items = data?.realties || [];
+
+    // 🔵 Suodatetaan vain oikeat kaupungit
+    const filteredItems = items.filter(item => 
+      item.city?.toLowerCase() === cityName.toLowerCase()
+    );
+
+    const count = filteredItems.length;
+
+    console.log(`✅ OVV: Löytyi ${count} kohdetta kaupungista ${cityName}`);
+    return count;
+  } catch (error) {
+    console.error(`❌ Virhe haettaessa OVV-dataa kaupungille ${cityName}:`, error);
+    return "⚠️";
+  }
 }
