@@ -11,16 +11,17 @@
   },
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "https://www.ovv.com/*"
   ],
   "host_permissions": [
-    "https://www.ovv.com/*",
     "https://script.google.com/*",
     "https://www.asuntopehtoori.fi/*",
     "https://kiinteistotahkola.fi/*",
     "https://vuokraus.rettamanagement.fi/*",
     "https://www.tsvv.fi/vuokra-asunnot/*",
     "https://op-koti.fi/*",
+    "https://www.ovv.com/*",
     "https://www.kiinteistomaailma.fi/*",
     "https://vuokraovi.com/*",
     "https://oikotie.fi/*",
@@ -28,7 +29,7 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.ovv.com/vuokrattavat-kohteet/*"],
+      "matches": ["https://www.ovv.com/*"],
       "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
