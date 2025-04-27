@@ -11,7 +11,8 @@
   },
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "https://www.ovv.com/*"    // 🔵 Tämä lisätty permissions-kohtaan myös!
   ],
   "host_permissions": [
     "https://script.google.com/*",
