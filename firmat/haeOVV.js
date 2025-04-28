@@ -46,7 +46,7 @@ export async function haeOvvNonce() {
 
 // True = suodata kaupungin mukaan, False = kaikki kohteet
 // Ilman suodatusta esim Hyvinkäällä näkyy Riihimäen ja Nurmijärven kohteet.
-const SUODATA_KAUPUNKI_TARKASTI = 1; 
+const SUODATA_KAUPUNKI_TARKASTI = 0; 
 
 export async function haeOVV(cityId, cityName) {
   try {
