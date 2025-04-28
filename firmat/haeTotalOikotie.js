@@ -106,25 +106,27 @@ export async function haeTotalOikotie(cityId, cityName) {
                 console.log("➡️ oldCount: ", oldCount);
   
                 // 4. Kirjoita cityName hakukenttään kirjain kerrallaan
-                const input = await waitForElement('input[id="autocomplete3-input"]');
-                if (input) {
-                  console.log("➡️ Input-kenttä löytyi, klikataan keskelle ja syötetään kaupungin nimi.");
-                  simulateClickCenter(input);
-                  await sleep(2000);
-                  
-                  console.log("➡️ Yritetään kirjoittaa kaupungin nimi kirjain kerrallaan...");
-                  await typeTextRealistically(input, cityName);
-                  await sleep(1000);
-                
-                  console.log("➡️ Yritetään klikata autocomplete-listan ensimmäistä vaihtoehtoa...");
-                  const suggestion = await waitForElement('ul[role="listbox"] li[role="option"]');
-                  if (suggestion) {
-                    suggestion.click();
-                    console.log("✅ Klikattiin autocomplete-vaihtoehto.");
+                const searchModal = await waitForElement('div.search-modal');
+                if (searchModal) {
+                  const input = searchModal.querySelector('input[id^="autocomplete"][id$="-input"]');
+                  if (input) {
+                    simulateClickCenter(input);
+                    await sleep(100);
+                    await typeTextSmart(input, cityName);
                     await sleep(1000);
+                
+                    const suggestion = await waitForElement('ul[role="listbox"] li[role="option"]');
+                    if (suggestion) {
+                      suggestion.click();
+                      await sleep(1000);
+                    } else {
+                      console.warn("⚠️ Autocomplete-vaihtoehtoa ei löytynyt!");
+                    }
                   } else {
-                    console.warn("⚠️ Autocomplete-vaihtoehtoa ei löytynyt!");
+                    console.warn("⚠️ Autocomplete-inputia ei löytynyt search-modalista!");
                   }
+                } else {
+                  console.warn("⚠️ Search-modal ei löytynyt!");
                 }
 
 
