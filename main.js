@@ -117,7 +117,7 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
             cityRow.cells[1].textContent = value;
 
             totalForCompany += parseInt(value) || 0;
-            console.log(`Updated total for ${company}: ${totalForCompany}`);
+            console.log(`main.js: Updated total for ${company}: ${totalForCompany}`);
           }
 
           cityRow = cityRow.nextElementSibling;
@@ -326,6 +326,68 @@ const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "
     window.open(config.SHEET_EDIT_URL, "_blank");
   });
 
+  // Päivitetään arvoja kun klikataan kaupungin nimeä
+  document.addEventListener("click", async function (e) {
+    if (e.target.classList.contains("city-name")) {
+      const cityCell = e.target;
+      const cityRow = cityCell.parentElement;
+      const companyRow = findCompanyRowAbove(cityRow);
+  
+      if (!companyRow) return;
+  
+      const companyName = companyRow.cells[0].textContent.trim();
+      const cityName = cityCell.textContent.trim();
+      const cityId = cityIdMap[companyName]?.[cityName];
+  
+      if (!cityId) {
+        console.warn(`City ID not found for ${companyName} - ${cityName}`);
+        return;
+      }
+  
+      // Lisää näkyviin että haku käynnistyy
+      cityRow.cells[1].textContent += " ⬅️";
+  
+      const functionName = `hae${companyName.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s/g, "")}`;
+      const modulePath = `./firmat/${functionName}.js`;
+  
+      try {
+        const mod = await import(modulePath);
+        const haeFunktio = mod[functionName];
+        const value = await haeFunktio(cityId, cityName);
+  
+        // Päivitä arvo ja poista merkki
+        cityRow.cells[1].textContent = value;
+  
+        // Päivitä samalla yhtiön kokonaissumma
+        updateCompanyTotal(companyRow);
+      } catch (err) {
+        console.error(`Error loading module for ${companyName}:`, err);
+      }
+    }
+  });
+  
+  function findCompanyRowAbove(cityRow) {
+    let prev = cityRow.previousElementSibling;
+    while (prev) {
+      if (prev.classList.contains("company-row")) {
+        return prev;
+      }
+      prev = prev.previousElementSibling;
+    }
+    return null;
+  }
+  
+  function updateCompanyTotal(companyRow) {
+    let nextRow = companyRow.nextElementSibling;
+    let sum = 0;
+    while (nextRow && nextRow.classList.contains("city-row")) {
+      const value = parseInt(nextRow.cells[1].textContent) || 0;
+      sum += value;
+      nextRow = nextRow.nextElementSibling;
+    }
+    companyRow.cells[1].textContent = sum;
+  }
+  
 
   let allExpanded = true;
 

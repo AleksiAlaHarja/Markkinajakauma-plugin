@@ -11,7 +11,8 @@
   },
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "https://www.vuokraovi.com/"
   ],
   "host_permissions": [
     "https://www.ovv.com/*",
@@ -23,6 +24,7 @@
     "https://op-koti.fi/*",
     "https://www.kiinteistomaailma.fi/*",
     "https://vuokraovi.com/*",
+    "https://www.vuokraovi.com/*",
     "https://oikotie.fi/*",
     "https://portaali.vuokraturva.fi/*"
   ],
