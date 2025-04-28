@@ -16,14 +16,14 @@ function muodostaClassifiedLocation(cityName) {
   
     const code = mappings[cityName];
     if (!code) {
-      console.error(`❗ Vuokraoven ClassifiedLocation-koodia ei löydy kaupungille: ${cityName}. Lisää se funktioon muodostaClassifiedLocation() tiedostossa haeYksityisetVuokraovi.js.`);
+      console.error(`❗ Vuokraoven ClassifiedLocation-koodia ei löydy kaupungille: ${cityName}. Lisää se funktioon muodostaClassifiedLocation() tiedostossa haeTotalVuokraovi.js.`);
       return null;
     }
     return `i:0|c:${code}|t:MUNICIPALITY|n:${cityName}`;
   }
   
-  export async function haeYksityisetVuokraovi(cityId, cityName) {
-    //console.log(`Haetaan Vuokraovelta yksityiset kaupungille ${cityName}...`);
+  export async function haeTotalVuokraovi(cityId, cityName) {
+    //console.log(`Haetaan Vuokraovelta total kaupungille ${cityName}...`);
     
     
     try {
@@ -41,7 +41,7 @@ function muodostaClassifiedLocation(cityName) {
       params.append("location.country", "finland");
       params.append("building.showRightOfOccupancyApartments", "NOT_RIGHT_OF_OCCUPANCY_PROPERTIES");
       params.append("building.livingType", "1");
-      params.append("extra.showOnlyPrivate", "true");
+      params.append("extra.showOnlyPrivate", "false");
   
       const response = await fetch("https://www.vuokraovi.com/haku/vuokra-asunnot", {
         method: "POST",

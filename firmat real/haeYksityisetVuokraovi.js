@@ -16,7 +16,7 @@ function muodostaClassifiedLocation(cityName) {
   
     const code = mappings[cityName];
     if (!code) {
-      console.error(`❗ Vuokraoven ClassifiedLocation-koodia ei löydy kaupungille: ${cityName}. Lisää se funktioon muodostaClassifiedLocation() tiedostossa haeYksityisetVuokraovi.js.`);
+      console.error(`❗ Vuokraoven ClassifiedLocation-koodia ei löydy kaupungille: ${cityName}. Lisää se funktioon muodostaClassifiedLocation() tiedostossa haeYksityiset.js.`);
       return null;
     }
     return `i:0|c:${code}|t:MUNICIPALITY|n:${cityName}`;
