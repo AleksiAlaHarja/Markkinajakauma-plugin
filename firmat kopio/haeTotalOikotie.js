@@ -1,4 +1,4 @@
-export async function haeYksityisetOikotie(cityId, cityName) {
+export async function haeTotalOikotie(cityId, cityName) {
   console.log(`🔎 Avataan Oikotie ja haetaan kaupungille: ${cityName}...`);
 
   return new Promise((resolve) => {
@@ -16,6 +16,7 @@ export async function haeYksityisetOikotie(cityId, cityName) {
           });
         }
       });
+      
 
       const checkClearButtonInterval = setInterval(() => {
         chrome.scripting.executeScript({
@@ -69,7 +70,7 @@ export async function haeYksityisetOikotie(cityId, cityName) {
                   const lastChar = text.slice(-1);
                   element.value = almostFullText;
                   element.dispatchEvent(new Event('input', { bubbles: true }));
-                  await new Promise(resolve => setTimeout(resolve, 50));
+                  await new Promise(resolve => setTimeout(resolve, 500));
                   const keyup = new KeyboardEvent('keyup', { key: lastChar, bubbles: true, cancelable: true });
                   element.dispatchEvent(keyup);
                 };
@@ -81,19 +82,10 @@ export async function haeYksityisetOikotie(cityId, cityName) {
                   clearButton.click();
                 }
 
-                // 2. Avaa kaikki hakuehdot
                 const allFiltersButton = Array.from(document.querySelectorAll('span.button__text'))
                   .find(el => el.textContent.includes("Kaikki hakuehdot"));
                 if (allFiltersButton) {
                   allFiltersButton.click();
-                  await sleep(500);
-                }
-  
-                // 3. Valitse "Yksityinen" -checkbox heti tässä vaiheessa
-                const privateCheckbox = await waitForElement('div.search-modal input[name^="searchInputsearch-form"][name$="vendorTypeprivate"]');
-                if (privateCheckbox && !privateCheckbox.checked) {
-                  privateCheckbox.click();
-                  await sleep(500);
                 }
 
                 const countElementBefore = await waitForElement('search-count');
@@ -121,6 +113,7 @@ export async function haeYksityisetOikotie(cityId, cityName) {
                 } else {
                   console.warn("⚠️ Search-modal ei löytynyt!");
                 }
+
                 const waitForUpdatedCount = async (oldCount, timeout = 15000) => {
                   const start = Date.now();
                   while (Date.now() - start < timeout) {

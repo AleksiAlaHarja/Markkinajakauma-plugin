@@ -86,11 +86,11 @@ export async function haeYksityisetOikotie(cityId, cityName) {
                   .find(el => el.textContent.includes("Kaikki hakuehdot"));
                 if (allFiltersButton) {
                   allFiltersButton.click();
-                  await sleep(500);
+                  await sleep(1000);
                 }
   
                 // 3. Valitse "Yksityinen" -checkbox heti tässä vaiheessa
-                const privateCheckbox = await waitForElement('div.search-modal input[name^="searchInputsearch-form"][name$="vendorTypeprivate"]');
+                const privateCheckbox = await waitForElement('input[name="searchInputsearch-form2vendorTypeprivate"]');
                 if (privateCheckbox && !privateCheckbox.checked) {
                   privateCheckbox.click();
                   await sleep(500);
