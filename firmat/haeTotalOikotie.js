@@ -70,7 +70,7 @@ export async function haeTotalOikotie(cityId, cityName) {
                   const lastChar = text.slice(-1);
                   element.value = almostFullText;
                   element.dispatchEvent(new Event('input', { bubbles: true }));
-                  await new Promise(resolve => setTimeout(resolve, 50));
+                  await new Promise(resolve => setTimeout(resolve, 500));
                   const keyup = new KeyboardEvent('keyup', { key: lastChar, bubbles: true, cancelable: true });
                   element.dispatchEvent(keyup);
                 };
@@ -91,20 +91,27 @@ export async function haeTotalOikotie(cityId, cityName) {
                 const countElementBefore = await waitForElement('search-count');
                 const oldCount = countElementBefore ? parseInt(countElementBefore.textContent.replace(/\D/g, ''), 10) : 0;
 
-                const input = await waitForElement('input[id="autocomplete3-input"]');
-                if (input) {
-                  simulateClickCenter(input);
-                  await sleep(100);
-                  await typeTextSmart(input, cityName);
-                  await sleep(1000);
-
-                  const suggestion = await waitForElement('ul[role="listbox"] li[role="option"]');
-                  if (suggestion) {
-                    suggestion.click();
+                const searchModal = await waitForElement('div.search-modal');
+                if (searchModal) {
+                  const input = searchModal.querySelector('input[id^="autocomplete"][id$="-input"]');
+                  if (input) {
+                    simulateClickCenter(input);
+                    await sleep(100);
+                    await typeTextSmart(input, cityName);
                     await sleep(1000);
+                
+                    const suggestion = await waitForElement('ul[role="listbox"] li[role="option"]');
+                    if (suggestion) {
+                      suggestion.click();
+                      await sleep(1000);
+                    } else {
+                      console.warn("⚠️ Autocomplete-vaihtoehtoa ei löytynyt!");
+                    }
                   } else {
-                    console.warn("⚠️ Autocomplete-vaihtoehtoa ei löytynyt!");
+                    console.warn("⚠️ Autocomplete-inputia ei löytynyt search-modalista!");
                   }
+                } else {
+                  console.warn("⚠️ Search-modal ei löytynyt!");
                 }
 
                 const waitForUpdatedCount = async (oldCount, timeout = 15000) => {
