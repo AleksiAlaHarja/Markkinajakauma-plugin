@@ -28,7 +28,8 @@
     "https://www.vuokraovi.com/*",
     "https://oikotie.fi/*",
     "https://asunnot.oikotie.fi/*",
-    "https://portaali.vuokraturva.fi/*"
+    "https://portaali.vuokraturva.fi/*",
+    "https://www.klikasuntovuokraus.fi/*"
   ],
   "content_scripts": [
     {

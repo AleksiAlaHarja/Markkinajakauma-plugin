@@ -30,9 +30,9 @@ if (typeof document === 'undefined') {
 
     for (const row of rows) {
       const [cityIdStr, city, company] = row.split(",");
-      const cityId = parseInt(cityIdStr);
+      const cityId = /^\d+$/.test(cityIdStr) ? parseInt(cityIdStr) : cityIdStr;
       if (!map[company]) map[company] = {};
-      map[company][city] = isNaN(cityId) ? null : cityId;
+      map[company][city] = cityId;      
 
       uniqueCompanies.add(company);
       uniqueCities.add(city);
@@ -84,54 +84,65 @@ if (typeof document === 'undefined') {
 
     for (let i = 0; i < companies.length; i++) {
       const company = companies[i];
-const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s/g, "")}`;
+      console.log(`[1] Käsitellään yhtiö: ${company}`);
+
+      const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s/g, "")}`;
       const modulePath = `./firmat/${functionName}.js`;
 
       let haeFunktio = null;
       try {
+        console.log(`[2] Yritetään ladata moduuli: ${modulePath}`);
         const mod = await import(modulePath);
         haeFunktio = mod[functionName];
+        console.log(`[3] Moduuli ladattu onnistuneesti`);
       } catch (e) {
-        console.warn(`Moduulia ei löytynyt: ${functionName}`);
+        console.warn(`[4] ❌ Moduulia ei löytynyt: ${functionName}`);
         continue;
       }
 
       let cityRow = companyRows[i].nextElementSibling;
       let totalForCompany = 0;
-      console.log(`Processing company: ${company}, row index: ${i}`);
+      console.log(`[5] Aloitetaan kaupungit yhtiölle ${company}`);
+
       for (const cityName of cities) {
-        console.log("main.js: Seuraavaksi " + company + " " +cityName +"...");
+        console.log(`[6] Kaupunki: ${cityName}`);
         if (cityRow && cityRow.classList.contains("city-row")) {
           const cityId = cityIdMap[company]?.[cityName];
+          console.log(`[7] Haetaan cityIdMapista: ${company} / ${cityName} → ${cityId}`);
 
           if (!cityId) {
+            console.warn(`[8] ⚠️ City ID puuttuu yhtiölle ${company} ja kaupungille ${cityName}`);
             cityRow.cells[1].textContent = "";
           } else {
-            // Näytä käyttäjälle että haku on käynnissä
             cityRow.cells[1].textContent += " ⬅️";
+            console.log(`[9] Suoritetaan haku: ${functionName}(${cityId}, ${cityName})`);
+            try {
+              const value = await haeFunktio(cityId, cityName);
+              console.log(`[10] ✅ Haettu arvo: ${value}`);
 
-            const value = await haeFunktio(cityId, cityName);
-            console.log("main.js: taulukkoon:  " + value);
-
-            // Päivitä lopullinen arvo ja poista merkki
-            cityRow.cells[1].textContent = value;
-
-            totalForCompany += parseInt(value) || 0;
-            console.log(`main.js: Updated total for ${company}: ${totalForCompany}`);
+              cityRow.cells[1].textContent = value;
+              totalForCompany += parseInt(value) || 0;
+              console.log(`[11] Päivitetty yhtiön summa: ${totalForCompany}`);
+            } catch (err) {
+              console.error(`[12] ❌ Virhe haussa: ${err.message}`);
+              cityRow.cells[1].textContent = "⚠️";
+            }
           }
 
           cityRow = cityRow.nextElementSibling;
         }
       }
-      console.log(`Final total for ${company}: ${totalForCompany}`);
+
+      console.log(`[13] Final total for ${company}: ${totalForCompany}`);
       if (companyRows[i] && companyRows[i].cells && companyRows[i].cells[1]) {
         companyRows[i].cells[1].textContent = totalForCompany;
-        console.log(`Updated header row for ${company}`);
+        console.log(`[14] ✅ Päivitettiin taulukkoon summa yhtiölle ${company}`);
       } else {
-        console.error(`Could not find cells for company row ${i}`);
+        console.error(`[15] ❌ Ei löytynyt solua yhtiön riville: ${company}`);
       }
     }
   }
+
 
   function collectTableData() {
     console.log("Starting to collect table data...");
