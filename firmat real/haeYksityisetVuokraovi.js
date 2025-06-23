@@ -1,5 +1,5 @@
 export function haeYksityisetVuokraovi(cityId, cityName) {
-  console.log(`➡️➡️ [haeYksityisetVuokraovi] ${cityName}...`);
+  console.log(`  ➡️ [haeYksityisetVuokraovi] ${cityName}...`);
   return new Promise((resolve, reject) => {
     const normalizedName = cityName
       .toLowerCase()
@@ -35,7 +35,7 @@ export function haeYksityisetVuokraovi(cityId, cityName) {
           const result = results?.[0]?.result;
           chrome.tabs.remove(tabId);
           if (result) {
-            console.log(`⬅️⬅️ [haeYksityisetVuokraovi] ${cityName}:  ${result}`);
+            console.log(`  ⬅️ [haeYksityisetVuokraovi] ${cityName}:  ${result}`);
             resolve(parseInt(result));
           } else {
             reject("Kohteiden määrä ei löytynyt.");

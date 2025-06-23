@@ -1,178 +1,47 @@
+// background.js (Manifest V3)
+
 export async function haeTotalOikotie(cityId, cityName) {
-  console.log(`➡️➡️ [haeTotalOikotie] ${cityName}...`);
+  console.log(`  ➡️ [haeTotalOikotie] ${cityName}...`);
 
-  return new Promise((resolve) => {
-    chrome.tabs.create({ url: "https://asunnot.oikotie.fi/vuokra-asunnot", active: false }, (tab) => {
-      if (!tab.id) {
-        console.error("❗ Ei saatu luotua uutta välilehteä Oikotielle.");
-        return resolve(0);
-      }
+  // 1) Kokoa URL (huom. cityId vakiintuneesti 64)
+  const url = `https://asunnot.oikotie.fi/vuokra-asunnot?pagination=1`
+    + `&locations=[[64,6,"${encodeURIComponent(cityName)}"]]`
+    + `&cardType=101`;
 
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          Object.defineProperty(navigator, 'userAgent', {
-            get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
-          });
-        }
+  // 2) Avaa taustatab
+  const tab = await chrome.tabs.create({ url, active: false });
+
+  // 3) Injektoi skripti, joka pollaa <search-count>-tagin sisällä kunnes löytyy numero
+  const [injectionResult] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (cityName) => {
+      return new Promise((resolve) => {
+        const checkCount = () => {
+          const el = document.querySelector(
+            'search-count[search-params="$ctrl.searchParams"]'
+          );
+          if (el) {
+            // Poista kaikki ei-numeraaliset merkit (välilyönnit, tuhaterottimet ym.)
+            const digits = el.textContent.trim().replace(/\D+/g, '');
+            if (digits.length > 0) {
+              const value = parseInt(digits, 10);
+              resolve(value);
+              return;
+            }
+          }
+          // Jatketaan 100 ms välein kunnes löytyy
+          setTimeout(checkCount, 100);
+        };
+        checkCount();
       });
-
-      const checkClearButtonInterval = setInterval(() => {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => !!document.querySelector('button[analytics-click="search_click_clear"]')
-        }, (results) => {
-          if (chrome.runtime.lastError || !results || !results[0].result) return;
-
-          clearInterval(checkClearButtonInterval);
-
-          chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => window.stop()
-          }, () => {
-
-            chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: async (cityName) => {
-                const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-                const waitForElement = async (selector, timeout = 10000) => {
-                  const start = Date.now();
-                  while (Date.now() - start < timeout) {
-                    const el = document.querySelector(selector);
-                    if (el) return el;
-                    await sleep(100);
-                  }
-                  return null;
-                };
-
-                const simulateClickCenter = (element) => {
-                  const rect = element.getBoundingClientRect();
-                  const x = rect.left + rect.width / 2;
-                  const y = rect.top + rect.height / 2;
-
-                  ["mousedown", "mouseup", "click"].forEach(eventType => {
-                    const event = new MouseEvent(eventType, {
-                      view: window,
-                      bubbles: true,
-                      cancelable: true,
-                      clientX: x,
-                      clientY: y
-                    });
-                    element.dispatchEvent(event);
-                  });
-                };
-
-                const typeTextSmart = async (element, text) => {
-                  element.focus();
-                  const almostFullText = text.slice(0, -1);
-                  const lastChar = text.slice(-1);
-                  element.value = almostFullText;
-                  element.dispatchEvent(new Event('input', { bubbles: true }));
-                  await new Promise(resolve => setTimeout(resolve, 50));
-                  const keyup = new KeyboardEvent('keyup', { key: lastChar, bubbles: true, cancelable: true });
-                  element.dispatchEvent(keyup);
-                };
-
-                console.log("cityName: ", cityName);
-
-                const clearButton = await waitForElement('button[analytics-click="search_click_clear"]');
-                if (clearButton) {
-                  clearButton.click();
-                }
-
-                // 2. Avaa kaikki hakuehdot
-                const allFiltersButton = Array.from(document.querySelectorAll('span.button__text'))
-                  .find(el => el.textContent.includes("Kaikki hakuehdot"));
-                if (allFiltersButton) {
-                  allFiltersButton.click();
-                  await sleep(500);
-                }
-  
-                /*
-                // 3. Valitse "Yksityinen" -checkbox heti tässä vaiheessa
-                const privateCheckbox = await waitForElement('div.search-modal input[name^="searchInputsearch-form"][name$="vendorTypeprivate"]');
-                if (privateCheckbox && !privateCheckbox.checked) {
-                  privateCheckbox.click();
-                  await sleep(500);
-                }
-                */
-
-                const countElementBefore = await waitForElement('search-count');
-                const oldCount = countElementBefore ? parseInt(countElementBefore.textContent.replace(/\D/g, ''), 10) : 0;
-
-                const searchModal = await waitForElement('div.search-modal');
-                if (searchModal) {
-                  const input = searchModal.querySelector('input[id^="autocomplete"][id$="-input"]');
-                  if (input) {
-                    simulateClickCenter(input);
-                    await sleep(100);
-                    await typeTextSmart(input, cityName);
-                    await sleep(1000);
-                
-                    const suggestion = await waitForElement('ul[role="listbox"] li[role="option"]');
-                    if (suggestion) {
-                      suggestion.click();
-                      await sleep(1000);
-                    } else {
-                      console.warn("⚠️ Autocomplete-vaihtoehtoa ei löytynyt!");
-                    }
-                  } else {
-                    console.warn("⚠️ Autocomplete-inputia ei löytynyt search-modalista!");
-                  }
-                } else {
-                  console.warn("⚠️ Search-modal ei löytynyt!");
-                }
-                const waitForUpdatedCount = async (oldCount, timeout = 15000) => {
-                  const start = Date.now();
-                  while (Date.now() - start < timeout) {
-                    const buttons = Array.from(document.querySelectorAll('span.button__text'))
-                      .filter(el => el.textContent.includes("Hae kohteet (") && el.querySelector('search-count'));
-
-                    const counts = buttons.map(button => {
-                      const searchCountElement = button.querySelector('search-count');
-                      if (searchCountElement) {
-                        const countText = searchCountElement.textContent;
-                        const count = parseInt(countText.replace(/\D/g, ''), 10);
-                        return isNaN(count) ? null : count;
-                      }
-                      return null;
-                    }).filter(c => c !== null);
-
-                    if (counts.length > 0) {
-                      const newCount = Math.min(...counts);
-                      if (newCount !== oldCount) {
-                        return newCount;
-                      }
-                    }
-                    await sleep(100);
-                  }
-                  return oldCount;
-                };
-
-                const updatedCount = await waitForUpdatedCount(oldCount);
-                return updatedCount;
-              },
-              args: [cityName]
-            }, (results) => {
-              if (chrome.runtime.lastError) {
-                console.error("❗ Virhe skriptin suorittamisessa:", chrome.runtime.lastError.message);
-                chrome.tabs.remove(tab.id);
-                return resolve(0);
-              }
-
-              const result = results && results[0] && typeof results[0].result === "number" ? results[0].result : 0;
-              console.log(`⬅️⬅️ [haeTotalOikotie] ${cityName}:  ${result}`);
-
-              //await new Promise(resolve => setTimeout(resolve, 200)); // Odota 200 ms ennen tabin sulkemista
-              chrome.tabs.remove(tab.id);
-              return resolve(result);
-              
-            });
-
-          });
-        });
-      }, 300);
-    });
+    },
+    args: [cityName],  // välitetään nimi lokia varten
   });
+
+  // 4) Sulje tab (jos et tarvitse näkyvyyttä)
+  await chrome.tabs.remove(tab.id);
+
+  // 5) Palauta löydetty luku
+  console.log(`  ⬅️ [haeTotalOikotie] ${cityName}: ${injectionResult.result}`);
+  return injectionResult.result;
 }

@@ -1,5 +1,5 @@
 export async function haeTotalVuokraovi(cityId, cityName) {
-  console.log(`➡️➡️ [haeTotalVuokraovi] ${cityName}...`);
+  console.log(`  ➡️ [haeTotalVuokraovi] ${cityName}...`);
   return new Promise((resolve, reject) => {
     const normalizedName = cityName
       .toLowerCase()
@@ -39,7 +39,7 @@ export async function haeTotalVuokraovi(cityId, cityName) {
           const result = results?.[0]?.result;
           chrome.tabs.remove(tabId);
           if (result) {
-            console.log(`⬅️⬅️ [haeTotalVuokraovi] ${cityName}:  ${result}`);
+            console.log(`  ⬅️ [haeTotalVuokraovi] ${cityName}:  ${result}`);
             resolve(parseInt(result, 10));
           } else {
             reject("Kohteiden määrä ei löytynyt.");
