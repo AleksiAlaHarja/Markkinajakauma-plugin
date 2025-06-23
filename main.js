@@ -84,47 +84,40 @@ if (typeof document === 'undefined') {
 
     for (let i = 0; i < companies.length; i++) {
       const company = companies[i];
-      console.log(`[1] Käsitellään yhtiö: ${company}`);
 
       const functionName = `hae${company.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s/g, "")}`;
       const modulePath = `./firmat/${functionName}.js`;
 
       let haeFunktio = null;
       try {
-        console.log(`[2] Yritetään ladata moduuli: ${modulePath}`);
         const mod = await import(modulePath);
         haeFunktio = mod[functionName];
-        console.log(`[3] Moduuli ladattu onnistuneesti`);
       } catch (e) {
-        console.warn(`[4] ❌ Moduulia ei löytynyt: ${functionName}`);
+        console.warn(`❌ [main.js] Moduulia ei löytynyt: ${functionName}`);
         continue;
       }
 
       let cityRow = companyRows[i].nextElementSibling;
       let totalForCompany = 0;
-      console.log(`[5] Aloitetaan kaupungit yhtiölle ${company}`);
+      console.log(`⬇️ [main.js] ########## ${company} ##########`);
 
       for (const cityName of cities) {
-        console.log(`[6] Kaupunki: ${cityName}`);
         if (cityRow && cityRow.classList.contains("city-row")) {
           const cityId = cityIdMap[company]?.[cityName];
-          console.log(`[7] Haetaan cityIdMapista: ${company} / ${cityName} → ${cityId}`);
+          console.log(`↩️ [main.js] [${functionName}] ${cityName} (cityId: ${cityId})`);
 
           if (!cityId) {
-            console.warn(`[8] ⚠️ City ID puuttuu yhtiölle ${company} ja kaupungille ${cityName}`);
+            console.warn(`⚠️ [main.js] City ID puuttuu yhtiölle ${company} ja kaupungille ${cityName}`);
             cityRow.cells[1].textContent = "";
           } else {
             cityRow.cells[1].textContent += " ⬅️";
-            console.log(`[9] Suoritetaan haku: ${functionName}(${cityId}, ${cityName})`);
             try {
               const value = await haeFunktio(cityId, cityName);
-              console.log(`[10] ✅ Haettu arvo: ${value}`);
-
               cityRow.cells[1].textContent = value;
               totalForCompany += parseInt(value) || 0;
-              console.log(`[11] Päivitetty yhtiön summa: ${totalForCompany}`);
+              console.log(`✅ [main.js] [${functionName}] ${cityName}: ${value}`);
             } catch (err) {
-              console.error(`[12] ❌ Virhe haussa: ${err.message}`);
+              console.error(`❌ [main.js] Virhe haussa: ${err.message}`);
               cityRow.cells[1].textContent = "⚠️";
             }
           }
@@ -133,59 +126,58 @@ if (typeof document === 'undefined') {
         }
       }
 
-      console.log(`[13] Final total for ${company}: ${totalForCompany}`);
       if (companyRows[i] && companyRows[i].cells && companyRows[i].cells[1]) {
         companyRows[i].cells[1].textContent = totalForCompany;
-        console.log(`[14] ✅ Päivitettiin taulukkoon summa yhtiölle ${company}`);
+        console.log(`✅ [main.js] Päivitettiin taulukkoon summa yhtiölle ${company}`);
       } else {
-        console.error(`[15] ❌ Ei löytynyt solua yhtiön riville: ${company}`);
+        console.error(`❌ Ei löytynyt solua yhtiön riville: ${company}`);
       }
     }
   }
 
 
   function collectTableData() {
-    console.log("Starting to collect table data...");
+    console.log("[main.js] Starting to collect table data...");
     const data = {};
     const rows = Array.from(document.querySelectorAll("#marketShareTable tr"));
-    console.log(`Found ${rows.length} rows in total`);
+    console.log(`[main.js] Found ${rows.length} rows in total`);
   
     let currentCompany = null;
   
     rows.forEach((row, index) => {
-      console.log(`Processing row ${index}:`, row);
+      console.log(`[main.js] Processing row ${index}:`, row);
       
       if (row.classList.contains("company-row")) {
         // Uusi yhtiö alkaa
         currentCompany = row.cells[0].textContent;
         const totalText = row.cells[1].textContent || "";
-        console.log(`Found company row: ${currentCompany}, total text: "${totalText}"`);
+        console.log(`[main.js] Found company row: ${currentCompany}, total text: "${totalText}"`);
         
         const match = totalText.match(/(\d+)/);
         const totalValue = match ? parseInt(match[1]) : 0;
-        console.log(`Extracted total value: ${totalValue}`);
+        console.log(`[main.js] Extracted total value: ${totalValue}`);
   
         data[currentCompany] = {};
         data[currentCompany]["Total"] = totalValue;
-        console.log(`Added company ${currentCompany} to data with total ${totalValue}`);
+        console.log(`[main.js] Added company ${currentCompany} to data with total ${totalValue}`);
       } else if (row.classList.contains("city-row")) {
         const city = row.cells[0].textContent;
         const value = parseInt(row.cells[1].textContent) || 0;
-        console.log(`Found city row: ${city} = ${value} for company ${currentCompany}`);
+        console.log(`[main.js] Found city row: ${city} = ${value} for company ${currentCompany}`);
         
         if (!currentCompany) {
-          console.warn("Found city row without current company!");
+          console.warn("[main.js] Found city row without current company!");
           return;
         }
         
         data[currentCompany][city] = value;
-        console.log(`Added city ${city} with value ${value} to company ${currentCompany}`);
+        console.log(`[main.js] Added city ${city} with value ${value} to company ${currentCompany}`);
       } else {
-        console.log(`Skipping row ${index} - not a company or city row`);
+        console.log(`[main.js] Skipping row ${index} - not a company or city row`);
       }
     });
   
-    console.log("Final collected data:", data);
+    console.log("[main.js] Final collected data:", data);
     return data;
   }
 
@@ -205,7 +197,7 @@ if (typeof document === 'undefined') {
       });
   
     } catch (e) {
-      console.error("Virhe tarkistaessa päivämääräsaraketta:", e);
+      console.error("❌ [main.js] Virhe tarkistaessa päivämääräsaraketta:", e);
       return false;
     }
   }

@@ -1,5 +1,6 @@
-// firmat/haeVuokraturva.js
 export async function haeVuokraturva(cityId, cityName) {
+  console.log(`➡️ [haeVuokraturva] ${cityName}...`);
+
   const baseUrl = "https://portaali.vuokraturva.fi/vuokralainen/asuntohaku?query=";
 
   const queryObj = {

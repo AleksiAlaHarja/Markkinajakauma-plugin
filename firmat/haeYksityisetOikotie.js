@@ -1,5 +1,5 @@
 export async function haeYksityisetOikotie(cityId, cityName) {
-  console.log(`🔎 Avataan Oikotie ja haetaan kaupungille: ${cityName}...`);
+  console.log(`  ➡️ [haeYksityisetOikotie] ${cityName}...`);
 
   return new Promise((resolve) => {
     chrome.tabs.create({ url: "https://asunnot.oikotie.fi/vuokra-asunnot", active: false }, (tab) => {
@@ -160,7 +160,7 @@ export async function haeYksityisetOikotie(cityId, cityName) {
               }
 
               const result = results && results[0] && typeof results[0].result === "number" ? results[0].result : 0;
-              console.log(`✅ Oikotieltä haettu ${result} asuntoa kaupungille ${cityName}.`);
+              console.log(`  ⬅️ [haeYksityisetOikotie] ${cityName}:  ${result}`);
 
               //await new Promise(resolve => setTimeout(resolve, 200)); // Odota 200 ms ennen tabin sulkemista
               chrome.tabs.remove(tab.id);
