@@ -9,9 +9,7 @@
 6. [Odotteluperiaatteet](#odotteluperiaatteet)
 7. [Tiedon Kerääminen ja Käsittely](#tiedon-kerääminen-ja-käsittely)
 8. [Virheenkäsittely ja Varmuuskopiointi](#virheenkäsittely-ja-varmuuskopiointi)
-9. [Eri Skrapeaustekniikat](#eri-skrapeaustekniikat)
-10. [Muut Sivustot ja Vertailu](#muut-sivustot-ja-vertailu)
-11. [Koodiesimerkit](#koodiesimerkit)
+9. [Koodiesimerkit](#koodiesimerkit)
 
 ---
 
@@ -26,9 +24,7 @@ Markkinajakauma-plugin/
 ├── main.js                # Päälogiikka ja UI
 ├── contentScript.js       # DOM-manipulaatio injektoitu sivuille
 ├── firmat/               # Yrityskohtaiset skriptit
-│   ├── haeOikotie*.js    # Oikotie-spesifiset funktiot
-│   ├── haeVuokraovi*.js  # Vuokraovi-spesifiset funktiot
-│   └── ...
+│   └── haeOikotie*.js    # Oikotie-spesifiset funktiot
 └── index.html            # Käyttöliittymä
 ```
 
@@ -252,173 +248,6 @@ if (cachedNonce && (Date.now() - cachedTimestamp) < 60000) {
 
 ---
 
-## Eri Skrapeaustekniikat
-
-Projekti käyttää useita erilaisia tekniikoita tiedon keräämiseen riippuen sivuston arkkitehtuurista:
-
-### 1. Chrome Extension + DOM Polling (Oikotie, Vuokraovi)
-**Käyttötarkoitus**: Sivustot jotka lataavat sisältöä JavaScript:llä  
-**Tekniikka**: Background tab + script injection + element polling
-
-```javascript
-// Avaa taustavälilehti
-const tab = await chrome.tabs.create({ url, active: false });
-
-// Injektoi polling-skripti
-await chrome.scripting.executeScript({
-  target: { tabId: tab.id },
-  func: () => {
-    return new Promise(resolve => {
-      const poll = () => {
-        const element = document.querySelector('#target');
-        if (element) resolve(element.textContent);
-        else setTimeout(poll, 100);
-      };
-      poll();
-    });
-  }
-});
-```
-
-### 2. DOM Manipulation + MutationObserver (Vuokramestarit)
-**Käyttötarkoitus**: Sivustot joissa tarvitaan navigointia (sivutus)  
-**Tekniikka**: Klikkaa elementtejä + odota DOM-muutoksia
-
-```javascript
-function analyzePage() {
-  // Klikkaa viimeistä sivua
-  const lastBtn = document.querySelector('li.last-page-btn');
-  if (lastBtn) lastBtn.click();
-
-  // Odota DOM:n muuttumista
-  return new Promise(resolve => {
-    const observer = new MutationObserver(() => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        observer.disconnect();
-        // Laske elementit muutosten jälkeen
-        resolve(document.querySelectorAll('.property').length);
-      }, 500);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
-}
-```
-
-### 3. Suora REST API -kutsu (Kiinteistömaailma)
-**Käyttötarkoitus**: Sivustot joissa on julkinen API  
-**Tekniikka**: fetch() suoraan JSON-endpointiin
-
-```javascript
-export async function haeKiinteistomaailma(cityId, cityName) {
-  const query = JSON.stringify({ municipality: cityName });
-  const url = `https://www.kiinteistomaailma.fi/api/km/KM/?rental=true&query[]=${encodeURIComponent(query)}`;
-  
-  const response = await fetch(url);
-  const json = await response.json();
-  return json?.data?.matches ?? -1;
-}
-```
-
-### 4. HTML Scraping + DOMParser (Asuntopehtoori)
-**Käyttötarkoitus**: Sivustot jotka palauttavat HTML:ää AJAX:lla  
-**Tekniikka**: fetch() + DOMParser + data-attribute lukeminen
-
-```javascript
-export async function haeAsuntopehtoori(cityId, cityName) {
-  const url = `https://www.asuntopehtoori.fi/?sfid=13401&sf_action=get_data&...`;
-  
-  const response = await fetch(url);
-  const json = await response.json();
-  const html = json.form.replace(/\\"/g, '"'); // Unescape JSON
-  
-  // Parse HTML stringistä DOM:iksi
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  
-  // Etsi kaupunkikohtainen option data-attributella
-  const option = [...doc.querySelectorAll("option")]
-    .find(o => normalize(o.value) === normalize(cityName));
-  
-  return parseInt(option.getAttribute("data-sf-count"), 10);
-}
-```
-
-### 5. AJAX API + Nonce Authentication (OVV)
-**Käyttötarkoitus**: Sivustot joissa on CSRF-suojaus  
-**Tekniikka**: Content script + message passing + form data
-
-```javascript
-// 1. Hae nonce content scriptillä
-const tab = await chrome.tabs.create({ url: "https://www.ovv.com/vuokrattavat-kohteet/" });
-const response = await chrome.tabs.sendMessage(tab.id, { type: "GET_OVV_NONCE" });
-
-// 2. Käytä noncea API-kutsussa
-const formData = new URLSearchParams();
-formData.append("ovv_plugin_nonce", response.nonce);
-formData.append("office[]", cityId);
-formData.append("action", "ovv_plugin_get_realties");
-
-const apiResponse = await fetch("https://www.ovv.com/wp-admin/admin-ajax.php", {
-  method: "POST",
-  body: formData
-});
-```
-
-### Tekniikkojen Vertailu
-
-| Tekniikka | Nopeus | Luotettavuus | Monimutkaisuus | Käyttötarkoitus |
-|-----------|--------|--------------|----------------|-----------------|
-| REST API | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | Julkiset API:t |
-| HTML Fetch | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | AJAX endpoints |
-| DOM Polling | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | SPA sovellukset |
-| DOM Navigation | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | Navigointi vaativat |
-| Nonce Auth | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | CSRF-suojatut |
-
----
-
-## Muut Sivustot ja Vertailu
-
-### Vuokraovi.com
-```javascript
-// URL: https://www.vuokraovi.com/vuokra-asunnot/{city}?haku={cityId}
-// Elementti: #searchResultCount
-// Odotus: 100ms polling
-// Tekniikka: Chrome tabs + scripting injection
-```
-
-### Vuokramestarit.net
-```javascript
-// URL: https://www.vuokramestarit.net/kohteet/vuokra-asunnot-{city}/
-// Elementti: div.property_div.property.clearfix (lukumäärä)
-// Erikoisuus: Sivutus + viimeisen sivun klikkaus
-// Tekniikka: MutationObserver + DOM manipulation
-```
-
-### OVV.com
-```javascript
-// Erikoisuus: AJAX API + nonce-autentikointi
-// URL: https://www.ovv.com/wp-admin/admin-ajax.php
-// Metodi: POST FormData
-// Tekniikka: Content script messaging + cached nonce
-```
-
-### Kiinteistömaailma.fi
-```javascript
-// URL: https://www.kiinteistomaailma.fi/api/km/KM/?rental=true&query[]=...
-// Tekniikka: Suora REST API -kutsu fetch()-funktiolla
-// Palautus: JSON response.data.matches
-```
-
-### Asuntopehtoori.fi
-```javascript
-// URL: https://www.asuntopehtoori.fi/?sfid=13401&sf_action=get_data...
-// Tekniikka: HTML scraping + DOMParser + data-attribute
-// Elementti: option[data-sf-count] kaupungin mukaan
-```
-
----
-
 ## Koodiesimerkit
 
 ### Täydellinen Oikotie-haku Funktio
@@ -468,52 +297,24 @@ export async function haeYksityisetOikotie(cityId, cityName) {
 }
 ```
 
-### Sivutuksen Käsittely (Vuokramestarit-esimerkki)
-```javascript
-function analyzePage() {
-  // Sivumäärän laskeminen
-  const pagesContainer = document.querySelector('li.pages > ul');
-  const pages = pagesContainer ? pagesContainer.querySelectorAll('li').length : 0;
-
-  // Kohteiden laskeminen per sivu
-  const getPropertiesCount = () => 
-    document.querySelectorAll('div.property_div.property.clearfix').length;
-
-  if (pages < 2) {
-    return getPropertiesCount();
-  }
-
-  // Viimeisen sivun klikkaus
-  const lastBtn = pagesContainer.querySelector('li.last-page-btn');
-  if (lastBtn) lastBtn.click();
-
-  // DOM-muutosten odotus
-  return new Promise((resolve) => {
-    let timeout;
-    const observer = new MutationObserver(() => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        observer.disconnect();
-        const propertiesInLast = getPropertiesCount();
-        resolve((pages - 1) * 10 + propertiesInLast);
-      }, 500);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
-}
-```
+### Sivutuksen Käsittely
+Oikotie ei vaadi sivutukseen klikkailua, koska haku näyttää kaikki tulokset yhdellä sivulla. Search-count elementti sisältää suoraan kokonaismäärän.
 
 ### Content Script ja Messaging
+Jos Oikotie tulevaisuudessa vaatisi monimutkaista autentikointia, voitaisiin käyttää content script -lähestymistapaa:
+
 ```javascript
-// contentScript.js - Injektoidaan sivulle
+// contentScript.js - Injektoidaan sivulle tarvittaessa
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "GET_OVV_NONCE") {
+  if (message.type === "GET_OIKOTIE_DATA") {
     try {
-      const input = document.querySelector('input[name="ovv_plugin_nonce"]');
-      const nonce = input?.value || null;
-      sendResponse({ nonce });
+      const element = document.querySelector(
+        'search-count[search-params="$ctrl.searchParams"]'
+      );
+      const count = element ? parseInt(element.textContent.replace(/\D+/g, ''), 10) : 0;
+      sendResponse({ count });
     } catch (error) {
-      sendResponse({ nonce: null });
+      sendResponse({ count: null });
     }
   }
   return true; // Asynkroninen vastaus
@@ -536,11 +337,13 @@ function normalizeString(str) {
 const urlSafeCity = normalizeString(cityName);
 ```
 
-### JSON Response Parsing (Kiinteistömaailma-tyylinen)
+### JSON Response Parsing 
+Oikotie ei käytä JSON API:a, vaan DOM-elementtien lukemista. Jos tulevaisuudessa Oikotie siirtyy API-pohjaiseen hakuun:
+
 ```javascript
-export async function fetchDataFromAPI(cityName) {
-  const query = JSON.stringify({ municipality: cityName });
-  const url = `https://api.example.com/search?query=${encodeURIComponent(query)}`;
+export async function fetchOikotieAPI(cityName) {
+  // Hypoteettinen API-endpoint
+  const url = `https://api.oikotie.fi/search?city=${encodeURIComponent(cityName)}`;
   
   try {
     const response = await fetch(url);
@@ -549,9 +352,9 @@ export async function fetchDataFromAPI(cityName) {
     const json = await response.json();
     
     // Turvallinen property access chaining
-    return json?.data?.matches ?? -1;
+    return json?.results?.count ?? -1;
   } catch (error) {
-    console.error("API error:", error);
+    console.error("Oikotie API error:", error);
     return -1; // Virhekoodi
   }
 }
@@ -583,22 +386,21 @@ export async function fetchDataFromAPI(cityName) {
 - Polling 100ms riittävän nopea mutta ei kuormita
 - Välilehdet suljetaan aina lopuksi
 
-### 5. Sivusto-spesifiset Erityispiirteet
-- Oikotie: AngularJS custom elementit
-- Vuokraovi: Traditional DOM + ID selectors
-- Vuokramestarit: Pagination navigation
-- OVV: AJAX API + CSRF nonce
+### 5. Oikotie-spesifiset Erityispiirteet
+- **AngularJS custom elementit**: search-count komponentti
+- **Dynaaminen sisällön lataus**: JavaScript-pohjainen hakutulossivutus
+- **URL-parametrien monimutkaisuus**: locations-array ja vendorType-suodattimet
 
 ---
 
 ## Yhteenveto
 
-Tämä dokumentaatio sisältää kaikki keskeiset tekniikat Oikotie-sivuston automaattiseen navigointiin Chrome-laajennuksella. Tekniikat ovat siirrettävissä muihin projekteihin huomioiden seuraavat asiat:
+Tämä dokumentaatio sisältää kaikki keskeiset tekniikat Oikotie-sivuston automaattiseen navigointiin Chrome-laajennuksella. Tekniikat on optimoitu erityisesti Oikotie.fi-sivuston arkkitehtuurille:
 
-1. **Chrome Extension API:t** vaativat sopivat permissions
-2. **DOM-selektorit** ovat sivustokohtaisia
-3. **URL-parametrit** voivat muuttua sivuston päivitysten myötä
-4. **Odotteluperiaatteet** riippuvat sivuston latausnopeudesta
-5. **Virheenkäsittely** on kriittistä luotettavuuden kannalta
+1. **Chrome Extension API:t** vaativat oikotie.fi permissions
+2. **DOM-selektorit** ovat Oikotie-spesifisiä (search-count elementti)
+3. **URL-parametrit** noudattavat Oikotien locations-array rakennetta
+4. **Polling-strategia** 100ms on optimoitu Oikotien latausnopeudelle
+5. **Virheenkäsittely** huomioi Oikotien erityispiirteet
 
-Koodi on modulaarinen ja helposti laajennettavissa uusille sivustoille noudattamalla samoja periaatteita.
+Koodi on modulaarinen ja voidaan helposti laajentaa Oikotien uusille ominaisuuksille noudattamalla samoja periaatteita.
