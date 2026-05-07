@@ -394,10 +394,17 @@ if (typeof document === 'undefined') {
 
   let allExpanded = true;
 
+  const autoStart = false; // käynnistetäänkö haku automaattisesti, kun sivu avataan
+
   // Ladataan data ja alustetaan taulukko sivun käynnistyessä
   (async () => {
     await lataaDataTaulukosta();
     companies.forEach(company => addCompanyWithCities(company));
-    await haeUusimmatTiedot();
+    
+    if (autoStart) {
+      await haeUusimmatTiedot();
+    } else {
+      console.log("⚙️ Automaattinen haku on estetty (autoStart = false).");
+    }
   })();
 }
