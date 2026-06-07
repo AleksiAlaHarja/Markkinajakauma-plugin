@@ -16,6 +16,7 @@
     "https://asunnot.oikotie.fi/"
   ],
   "host_permissions": [
+    "https://*.inna.fi/*",
     "https://www.ovv.com/*",
     "https://script.google.com/*",
     "https://www.asuntopehtoori.fi/*",
