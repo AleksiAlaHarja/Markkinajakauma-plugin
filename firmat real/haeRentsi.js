@@ -6,7 +6,7 @@ export function haeRentsi(cityId, cityName) {
         .replace(/ö/g, "o")
         .replace(/å/g, "a");
   
-      const url = `https://www.vuokraovi.com/vuokra-asunnot/${normalizedName}?haku=${cityId}`;
+        const url = `https://www.vuokraovi.com/vuokra-asunnot/${normalizedName}?haku=${cityId}`;
   
       chrome.tabs.create({ url, active: false }, (tab) => {
         const tabId = tab.id;
