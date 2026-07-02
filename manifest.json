@@ -11,9 +11,7 @@
   },
   "permissions": [
     "tabs",
-    "scripting",
-    "https://www.vuokraovi.com/",
-    "https://asunnot.oikotie.fi/"
+    "scripting"
   ],
   "host_permissions": [
     "https://*.inna.fi/*",
